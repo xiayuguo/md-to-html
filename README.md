@@ -113,6 +113,12 @@ Every push to `main` automatically deploys to Netlify via the Netlify CLI.
 - `src/public/` is deployed as static assets (served directly by Netlify)
 - `POST /convert` and `GET /health` run as a Netlify Function (`netlify/functions/api.js`) backed by `serverless-http` + Fastify
 
+## Follow
+
+If you find this project helpful, feel free to follow the WeChat Official Account **Feed** for more content.
+
+<img src="src/public/qrcode.jpg" alt="Feed WeChat Official Account QR Code" width="200" />
+
 ## License
 
 GPL-3.0

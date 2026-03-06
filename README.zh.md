@@ -113,6 +113,12 @@ CI/CD 通过 GitHub Actions 实现（参见 [.github/workflows/deploy.yml](.gith
 - `src/public/` 作为静态资源部署，由 Netlify 直接提供服务
 - `POST /convert` 和 `GET /health` 以 Netlify Function 运行（`netlify/functions/api.js`），使用 `serverless-http` 适配 Fastify
 
+## 关注我们
+
+如果本项目对你有帮助，欢迎关注微信公众号 **Feed**，获取更多内容。
+
+<img src="src/public/qrcode.jpg" alt="Feed 微信公众号二维码" width="200" />
+
 ## 许可证
 
 GPL-3.0
