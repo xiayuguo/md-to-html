@@ -4,7 +4,10 @@
   functions = "netlify/functions"
 
 [functions]
-  node_bundler = "esbuild"
+  node_bundler = "zisi"
+
+[build.environment]
+  NODE_VERSION = "20"
 
 # Static files in src/public/ are served directly by Netlify.
 # All other requests are forwarded to the serverless function.
