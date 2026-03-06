@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MD to HTML</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 20px;
+      background: #fff;
+      border-bottom: 1px solid #e8e8e8;
+      flex-shrink: 0;
+    }
+
+    header h1 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin-right: auto;
+    }
+
+    .ctrl-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #888;
+    }
+
+    select {
+      border: 1px solid #d9d9d9;
+      border-radius: 6px;
+      padding: 5px 8px;
+      font-size: 13px;
+      background: #fff;
+      cursor: pointer;
+      outline: none;
+    }
+    select:focus { border-color: #1677ff; }
+
+    .btn {
+      padding: 6px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-primary { background: #1677ff; color: #fff; }
+    .btn-primary:hover { background: #0958d9; }
+    .btn-primary:disabled { background: #91caff; cursor: not-allowed; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      top: 56px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-6px);
+      background: #52c41a;
+      color: #fff;
+      padding: 7px 18px;
+      border-radius: 6px;
+      font-size: 13px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s, transform 0.2s;
+      z-index: 999;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast.error { background: #ff4d4f; }
+
+    /* ── Workspace ── */
+    .workspace {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Left pane (editor + tabs) ── */
+    .left-pane {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    .tab-bar {
+      display: flex;
+      border-bottom: 1px solid #e8e8e8;
+      background: #fafafa;
+      flex-shrink: 0;
+    }
+
+    .tab {
+      padding: 8px 16px;
+      font-size: 12px;
+      color: #999;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      user-select: none;
+    }
+    .tab.active {
+      color: #1677ff;
+      border-bottom-color: #1677ff;
+      background: #fff;
+    }
+
+    .tab-panel {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .tab-panel.active { display: flex; }
+
+    textarea {
+      flex: 1;
+      padding: 16px;
+      border: none;
+      outline: none;
+      resize: none;
+      font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
+      font-size: 13px;
+      line-height: 1.7;
+      color: #333;
+      background: #fff;
+    }
+
+    .css-hint {
+      padding: 6px 16px;
+      font-size: 11px;
+      color: #bbb;
+      background: #fafafa;
+      border-bottom: 1px solid #f0f0f0;
+      flex-shrink: 0;
+    }
+
+    /* ── Divider ── */
+    .divider {
+      width: 1px;
+      background: #e8e8e8;
+      flex-shrink: 0;
+    }
+
+    /* ── Right pane (preview) ── */
+    .right-pane {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    .pane-label {
+      padding: 9px 16px;
+      font-size: 12px;
+      color: #999;
+      background: #fafafa;
+      border-bottom: 1px solid #e8e8e8;
+      flex-shrink: 0;
+    }
+
+    iframe {
+      flex: 1;
+      border: none;
+      background: #fff;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>MD to HTML</h1>
+
+  <div class="ctrl-group">
+    <span>主题</span>
+    <select id="themeSelect">
+      <option value="default">默认</option>
+      <option value="blue">经典蓝</option>
+      <option value="green">简约绿</option>
+      <option value="purple">优雅紫</option>
+      <option value="warm">暖橙</option>
+    </select>
+  </div>
+
+  <div class="ctrl-group">
+    <span>平台</span>
+    <select id="platform">
+      <option value="wechat">微信公众号</option>
+      <option value="juejin">掘金</option>
+      <option value="zhihu">知乎</option>
+    </select>
+  </div>
+
+  <button class="btn btn-primary" id="btnCopy">复制排版结果</button>
+</header>
+
+<div class="toast" id="toast"></div>
+
+<div class="workspace">
+  <!-- Left: editor tabs -->
+  <div class="left-pane">
+    <div class="tab-bar">
+      <div class="tab active" data-tab="md">Markdown</div>
+      <div class="tab" data-tab="css">自定义 CSS</div>
+    </div>
+
+    <div class="tab-panel active" id="panel-md">
+      <textarea id="editor" placeholder="在这里输入 Markdown..."></textarea>
+    </div>
+
+    <div class="tab-panel" id="panel-css">
+      <div class="css-hint">追加在主题之后，可覆盖任意样式。选择器请使用 #nice 作为前缀。</div>
+      <textarea id="cssEditor" placeholder="/* 例：修改一级标题颜色 */&#10;#nice h1 {&#10;  color: #e74c3c;&#10;}"></textarea>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Right: preview -->
+  <div class="right-pane">
+    <div class="pane-label">预览</div>
+    <iframe id="preview" title="preview"></iframe>
+  </div>
+</div>
+
+<script>
+  // ── 内置主题 CSS ──────────────────────────────────────────────
+  const THEMES = {
+    default: '',
+
+    blue: `
+#nice h1, #nice h2, #nice h3 { color: #1677ff; }
+#nice h2 { border-left: 4px solid #1677ff; padding-left: 10px; }
+#nice a { color: #1677ff; border-bottom-color: #1677ff; }
+#nice p code, #nice li code { color: #1677ff; background: #e6f0ff; }
+#nice .multiquote-1 { border-left-color: #1677ff; background: #f0f7ff; }
+`,
+
+    green: `
+#nice h1, #nice h2, #nice h3 { color: #389e0d; }
+#nice h2 { border-left: 4px solid #52c41a; padding-left: 10px; }
+#nice a { color: #389e0d; border-bottom-color: #52c41a; }
+#nice p code, #nice li code { color: #389e0d; background: #f0ffe6; }
+#nice .multiquote-1 { border-left-color: #52c41a; background: #f6ffed; }
+`,
+
+    purple: `
+#nice h1, #nice h2, #nice h3 { color: #722ed1; }
+#nice h2 { border-left: 4px solid #722ed1; padding-left: 10px; }
+#nice a { color: #722ed1; border-bottom-color: #722ed1; }
+#nice p code, #nice li code { color: #722ed1; background: #f5eeff; }
+#nice .multiquote-1 { border-left-color: #722ed1; background: #f9f0ff; }
+`,
+
+    warm: `
+#nice { font-family: 'PingFang SC', 'Hiragino Sans GB', sans-serif; }
+#nice h1, #nice h2, #nice h3 { color: #d46b08; }
+#nice h2 {
+  border-bottom: 2px solid #ffa940;
+  padding-bottom: 6px;
+}
+#nice a { color: #d46b08; border-bottom-color: #ffa940; }
+#nice p code, #nice li code { color: #d46b08; background: #fff7e6; }
+#nice .multiquote-1 { border-left-color: #ffa940; background: #fffbe6; color: #874d00; }
+`,
+
+  };
+
+  // ── DOM refs ──────────────────────────────────────────────────
+  const editor      = document.getElementById('editor');
+  const cssEditor   = document.getElementById('cssEditor');
+  const preview     = document.getElementById('preview');
+  const platformSel = document.getElementById('platform');
+  const themeSel    = document.getElementById('themeSelect');
+  const btnCopy     = document.getElementById('btnCopy');
+  const toast       = document.getElementById('toast');
+
+  let currentHtml  = '';
+  let debounceTimer = null;
+
+  // ── Toast ─────────────────────────────────────────────────────
+  function showToast(msg, isError = false) {
+    toast.textContent = msg;
+    toast.className = 'toast' + (isError ? ' error' : '');
+    void toast.offsetWidth;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2200);
+  }
+
+  // ── Convert ───────────────────────────────────────────────────
+  async function convert() {
+    const markdown = editor.value.trim();
+    if (!markdown) {
+      preview.srcdoc = '';
+      currentHtml = '';
+      return;
+    }
+
+    const themeCSS   = THEMES[themeSel.value] ?? '';
+    const customCSS  = cssEditor.value;
+
+    try {
+      const res = await fetch('/convert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          markdown,
+          platform: platformSel.value,
+          themeCSS,
+          customCSS,
+        }),
+      });
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const data = await res.json();
+      currentHtml = data.html;
+
+      preview.srcdoc = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+        <style>body{padding:24px 32px;background:#fff;max-width:680px;margin:0 auto;}</style>
+        </head><body>${currentHtml}</body></html>`;
+    } catch (err) {
+      showToast('转换失败: ' + err.message, true);
+    }
+  }
+
+  function scheduleConvert() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(convert, 400);
+  }
+
+  // ── Copy ──────────────────────────────────────────────────────
+  async function copyResult() {
+    if (!currentHtml) {
+      showToast('没有可复制的内容', true);
+      return;
+    }
+    try {
+      const blob = new Blob([currentHtml], { type: 'text/html' });
+      await navigator.clipboard.write([
+        new ClipboardItem({ 'text/html': blob }),
+      ]);
+      showToast('已复制，直接粘贴到编辑器即可');
+    } catch {
+      showToast('复制失败，请在预览区手动全选复制', true);
+    }
+  }
+
+  // ── Tabs ──────────────────────────────────────────────────────
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+    });
+  });
+
+  // ── Events ────────────────────────────────────────────────────
+  editor.addEventListener('input', scheduleConvert);
+  cssEditor.addEventListener('input', scheduleConvert);
+  platformSel.addEventListener('change', convert);
+  themeSel.addEventListener('change', convert);
+  btnCopy.addEventListener('click', copyResult);
+
+  // ── Default content ───────────────────────────────────────────
+  editor.value = `# 标题示例
+
+这是一段正文，支持 **加粗**、*斜体* 和 \`行内代码\`。
+
+## 二级标题
+
+> 引用内容示例，支持多行文字的排版效果。
+
+## 代码块
+
+\`\`\`javascript
+const hello = (name) => \`Hello, \${name}!\`;
+console.log(hello('World'));
+\`\`\`
+
+## 列表
+
+- 苹果
+- 香蕉
+- 橙子
+
+## 表格
+
+| 名称 | 说明 |
+|------|------|
+| 微信 | 公众号编辑器 |
+| 掘金 | 技术社区 |
+| 知乎 | 问答平台 |`;
+
+  convert();
+</script>
+</body>
+</html>

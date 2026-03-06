@@ -1,0 +1,19 @@
+[build]
+  command   = "npm ci"
+  publish   = "src/public"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+# Static files in src/public/ are served directly by Netlify.
+# All other requests are forwarded to the serverless function.
+[[redirects]]
+  from   = "/convert"
+  to     = "/.netlify/functions/api/convert"
+  status = 200
+
+[[redirects]]
+  from   = "/health"
+  to     = "/.netlify/functions/api/health"
+  status = 200

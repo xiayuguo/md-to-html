@@ -1,0 +1,23 @@
+{
+  "name": "md-to-html",
+  "version": "1.0.0",
+  "description": "Markdown to WeChat/Juejin/Zhihu HTML converter API, based on mdnice rendering engine",
+  "type": "module",
+  "main": "src/renderer.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "serverless-http": "^3.2.0",
+    "fastify": "^5.8.1",
+    "highlight.js": "^11.10.0",
+    "juice": "^10.0.1",
+    "markdown-it": "^14.1.0",
+    "markdown-it-deflist": "^3.0.0",
+    "markdown-it-footnote": "^4.0.0",
+    "markdown-it-imsize": "^2.0.1",
+    "markdown-it-table-of-contents": "^0.8.0"
+  },
+  "license": "GPL-3.0"
+}

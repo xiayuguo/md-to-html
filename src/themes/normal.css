@@ -1,0 +1,9 @@
+/* 来源: mdnice src/template/markdown/normal.js - 默认 Markdown 主题（空覆盖层，用户可自定义） */
+/* 此文件为空主题，所有规则继承 basic.css，可在此处覆盖自定义样式 */
+
+/* 示例：修改一级标题样式
+#nice h2 {
+  border-left: 4px solid #3f9dfe;
+  padding-left: 8px;
+}
+*/
