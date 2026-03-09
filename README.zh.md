@@ -67,7 +67,13 @@ npm run dev
 **示例**
 
 ```bash
+# 本地
 curl -X POST http://localhost:3000/convert \
+  -H "Content-Type: application/json" \
+  -d '{"markdown": "# Hello\n\n这是一段正文。", "platform": "wechat"}'
+
+# Netlify
+curl -X POST https://mdpub.netlify.app/convert \
   -H "Content-Type: application/json" \
   -d '{"markdown": "# Hello\n\n这是一段正文。", "platform": "wechat"}'
 ```
@@ -84,7 +90,8 @@ Web 预览界面，可在浏览器中在线预览渲染效果。
 
 ```
 src/
-  server.js          # Fastify HTTP 服务入口
+  server.js          # 本地开发入口（启动 Fastify + 提供 index.html）
+  app.js             # Fastify 应用工厂，供本地服务和 Netlify Function 共用
   renderer.js        # Markdown 渲染核心（markdown-it + juice）
   platforms.js       # 各平台后处理逻辑
   plugins/
@@ -93,13 +100,18 @@ src/
   themes/
     basic.css        # 基础结构样式（mdnice basic）
     normal.css       # 默认主题样式（mdnice normal）
+  public/
+    index.html       # Web 预览界面
+netlify/
+  functions/
+    api.js           # Netlify Function 处理器（serverless-http + Fastify）
 ```
 
 ## 部署（Netlify）
 
 CI/CD 通过 GitHub Actions 实现（参见 [.github/workflows/deploy.yml](.github/workflows/deploy.yml)）。
 
-每次推送到 `main` 分支时，自动通过 Netlify CLI 部署到 Netlify。
+每次推送到 `main` 分支时，通过 `netlify deploy --build` 自动部署，包含完整的 esbuild 函数打包流程。
 
 **需要在 GitHub 仓库中配置以下 Secrets：**
 
@@ -110,8 +122,9 @@ CI/CD 通过 GitHub Actions 实现（参见 [.github/workflows/deploy.yml](.gith
 
 **工作原理：**
 
-- `src/public/` 作为静态资源部署，由 Netlify 直接提供服务
-- `POST /convert` 和 `GET /health` 以 Netlify Function 运行（`netlify/functions/api.js`），使用 `serverless-http` 适配 Fastify
+- `src/public/` 由 Netlify 直接作为静态资源提供服务
+- `POST /convert` 和 `GET /health` 以 Netlify Function 运行，使用 `serverless-http` 适配 Fastify
+- Function 通过 esbuild 打包为 CJS，主题 CSS 文件通过 `included_files` 随包部署
 
 ## 关注我们
 

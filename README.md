@@ -67,7 +67,13 @@ Convert Markdown to HTML for the target platform.
 **Example**
 
 ```bash
+# Local
 curl -X POST http://localhost:3000/convert \
+  -H "Content-Type: application/json" \
+  -d '{"markdown": "# Hello\n\nSome body text.", "platform": "wechat"}'
+
+# Netlify
+curl -X POST https://mdpub.netlify.app/convert \
   -H "Content-Type: application/json" \
   -d '{"markdown": "# Hello\n\nSome body text.", "platform": "wechat"}'
 ```
@@ -84,7 +90,8 @@ Web preview UI — open in a browser to preview rendered output interactively.
 
 ```
 src/
-  server.js          # Fastify HTTP server entry point
+  server.js          # Local dev entry point (starts Fastify + serves index.html)
+  app.js             # Fastify app factory shared by server and Netlify Function
   renderer.js        # Markdown rendering core (markdown-it + juice)
   platforms.js       # Platform-specific post-processing
   plugins/
@@ -93,13 +100,18 @@ src/
   themes/
     basic.css        # Base structural styles (mdnice basic)
     normal.css       # Default theme styles (mdnice normal)
+  public/
+    index.html       # Web preview UI
+netlify/
+  functions/
+    api.js           # Netlify Function handler (serverless-http + Fastify)
 ```
 
 ## Deployment (Netlify)
 
 CI/CD is handled by GitHub Actions (see [.github/workflows/deploy.yml](.github/workflows/deploy.yml)).
 
-Every push to `main` automatically deploys to Netlify via the Netlify CLI.
+Every push to `main` automatically deploys to Netlify via `netlify deploy --build`, which runs the full build pipeline including esbuild function bundling.
 
 **Required GitHub repository secrets:**
 
@@ -110,8 +122,9 @@ Every push to `main` automatically deploys to Netlify via the Netlify CLI.
 
 **How it works:**
 
-- `src/public/` is deployed as static assets (served directly by Netlify)
-- `POST /convert` and `GET /health` run as a Netlify Function (`netlify/functions/api.js`) backed by `serverless-http` + Fastify
+- `src/public/` is served directly by Netlify as static assets
+- `POST /convert` and `GET /health` run as a Netlify Function backed by `serverless-http` + Fastify
+- Functions are bundled with esbuild (CJS output); theme CSS files are included via `included_files`
 
 ## Follow
 
