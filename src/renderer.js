@@ -5,25 +5,15 @@ import markdownItTableOfContents from 'markdown-it-table-of-contents';
 import hljs from 'highlight.js';
 import juice from 'juice';
 import { readFileSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { join } from 'path';
 import mdMultiquote from './plugins/md-multiquote.js';
 import mdSpan from './plugins/md-span.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
 // 加载 mdnice 主题 CSS
-// 本地开发时 __dirname 指向 src/，esbuild 打包后指向 Lambda 根目录；
-// 后者通过 included_files 将 CSS 放在 cwd()/src/themes/ 下，作为回退路径。
-function loadCss(filename) {
-  for (const dir of [join(__dirname, 'themes'), join(process.cwd(), 'src', 'themes')]) {
-    try { return readFileSync(join(dir, filename), 'utf-8'); } catch {}
-  }
-  throw new Error(`Theme CSS not found: ${filename}`);
-}
-
-const BASIC_CSS = loadCss('basic.css');
-const NORMAL_CSS = loadCss('normal.css');
+// 本地: process.cwd() = 项目根目录，CSS 在 src/themes/
+// Lambda: included_files 将 CSS 放在 /var/task/src/themes/，cwd() = /var/task/
+const BASIC_CSS = readFileSync(join(process.cwd(), 'src', 'themes', 'basic.css'), 'utf-8');
+const NORMAL_CSS = readFileSync(join(process.cwd(), 'src', 'themes', 'normal.css'), 'utf-8');
 
 /**
  * 代码高亮渲染（与 mdnice langHighlight 对齐）
