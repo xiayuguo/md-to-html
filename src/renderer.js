@@ -13,8 +13,17 @@ import mdSpan from './plugins/md-span.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // 加载 mdnice 主题 CSS
-const BASIC_CSS = readFileSync(join(__dirname, 'themes/basic.css'), 'utf-8');
-const NORMAL_CSS = readFileSync(join(__dirname, 'themes/normal.css'), 'utf-8');
+// 本地开发时 __dirname 指向 src/，esbuild 打包后指向 Lambda 根目录；
+// 后者通过 included_files 将 CSS 放在 cwd()/src/themes/ 下，作为回退路径。
+function loadCss(filename) {
+  for (const dir of [join(__dirname, 'themes'), join(process.cwd(), 'src', 'themes')]) {
+    try { return readFileSync(join(dir, filename), 'utf-8'); } catch {}
+  }
+  throw new Error(`Theme CSS not found: ${filename}`);
+}
+
+const BASIC_CSS = loadCss('basic.css');
+const NORMAL_CSS = loadCss('normal.css');
 
 /**
  * 代码高亮渲染（与 mdnice langHighlight 对齐）
